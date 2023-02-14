@@ -1,0 +1,300 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Game 2</title>
+        <style>
+            #canvas{
+                background-image: url("textures/background/volcanoDayBG.png");
+                position:absolute;
+                z-index:-1;
+            }
+            #mainMenu{
+                display:block;
+            }
+            #optionsMenu{
+                display:none;
+            }
+            #hud{
+                position:absolute;
+                float:right;
+                display:none;
+                background-color: black;
+                color:white;
+                border-right:5px solid white;
+                border-bottom:5px solid white;
+            }
+            #creditsMenu{
+                display:none;
+            }
+            #hpBar::-webkit-progress-value{
+                background-color: red;
+            }
+            #mpBar::-webkit-progress-value{
+                background-color: blue;
+            }
+            #hpBar::-moz-progress-bar{
+                background-color: red;
+            }
+            #mpBar::-moz-progress-bar{
+                background-color: blue;
+            }
+            #gameOver{
+                display:none;
+            }
+            .menu{
+                position:absolute;
+                width:600px;
+                height:600px;
+                background-color:white;
+            }
+            .audio{
+                display:none;
+            }
+            .center{
+                text-align:center;
+            }
+            a{
+                color:black;
+                text-decoration:none;
+            }
+            a:hover{
+                text-decoration:underline;
+                font-weight:bold;
+                border:1px solid black;
+                border-radius:4px;
+            }
+            progress{
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+            }
+        </style>
+    </head>
+    <body>
+        <audio id="epicMp3" class="audio" src="audio/epic.mp3"></audio>
+        <!--Main Menu-->
+        <div class="menu center" id="mainMenu">
+            <br/>
+            <br/>
+            <br/>
+            <h1>Game 2</h1>
+            <br/>
+            <br/>
+            <br/>
+            <a href="#" onclick="start()">Start</a>
+        </div>
+        <!--Main Menu End-->
+        <!--Options Menu-->
+        <div class="menu center" id="optionsMenu">
+            <br/>
+            <br/>
+            <br/>
+            <h1>Options</h1>
+            <br/>
+            <br/>
+            <br/>
+            <a href="#" onclick="">Controls</a>
+            <br/>
+            <a href="#" onclick="">Audio</a>
+        </div>
+        <!--Options Menu End-->
+        <!--Credits Menu-->
+        <div class="menu center" id="creditsMenu">
+            <br/>
+            <h1>Loading...</h1>
+            <br/>
+            <h2>Credits</h2>
+            <br/>
+            <br/>
+            <a target="_blank" href="https://www.bensound.com/royalty-free-music/track/epic">Music by: Bensound.com</a>
+            <p>Game Art by: Kai Brant & Garrett Yeno</p>
+        </div>
+        <!--Credits Menu End-->
+        <!--Game Over-->
+        <div class="menu center" id="gameOver">
+            <br/>
+            <h1>Game Over!</h1>
+            <br/>
+            <p>You Lose</p>
+        </div>
+        <!--Game Over end-->
+        <!--HUD-->
+        <div id="hud">
+            <label for="hp">HP:</label>
+            <progress name="hp" id="hpBar"></progress>
+            <br/>
+            <label for="mp">MP:</label>
+            <progress name="mp" id="mpBar"></progress>
+            <p>Level: <span id="level"></span></p>
+        </div>
+        <!--HUD end-->
+        <canvas id="canvas"></canvas>
+        <script src="img.js"></script>
+        <script src="objStats.js"></script>
+        <script src="physics.js"></script>
+        <script src="classes.js"></script>
+        <script src="controls.js"></script>
+        <script src="terrain.js"></script>
+        <script>
+            //var init
+            var level = 1;
+            var gameStart = false;
+            var gameLose = false;
+            const music = document.getElementById("epicMp3");
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            var projectileArr = [];
+            var enemyArr = [];
+            var hpBar = document.getElementById("hpBar");
+            var mpBar = document.getElementById("mpBar");
+            //function definition
+            //level up
+            function levelUp(){
+                if(enemyArr.length == 0){
+                    level++;
+                    for(let i=0;i<level/2;i++){
+                        enemyArr.push(new Cultist());
+                    }
+                }
+            }
+            //start menu functions
+            function start(){
+                document.getElementById("mainMenu").style.display = "none";
+                document.getElementById("creditsMenu").style.display = "block";
+                setTimeout(function(){
+                    document.getElementById("creditsMenu").style.display = "none";
+                    document.getElementById("hud").style.display = "block";
+                    music.play();
+                    gameStart = true;
+                },5000)
+            }
+            //projectile collision
+            function playerDamage(){
+                for(let i=0;i<projectileArr.length;i++){
+                    if(physics.collision(player,projectileArr[i])){
+                        if(projectileArr[i].caster != "player"){
+                            player.hp -= projectileArr[i].damage;
+                            //remove the projectile from the array
+                            projectileArr.splice(i,1);
+                        }
+                    }
+                }
+            }
+            function enemyDamage(){
+                for(let i=0;i<enemyArr.length;i++){
+                    for(let j=0;j<projectileArr.length;j++){
+                        if(physics.collision(enemyArr[i],projectileArr[j])){
+                            if(projectileArr[j].caster != "enemy"){
+                                enemyArr[i].hp -= projectileArr[j].damage;
+                                //remove the projectile from the array
+                                projectileArr.splice(j,1);
+                            }
+                        }
+                    }
+                    if(enemyArr[i].hp <= 0){
+                        enemyArr.splice(i,1);
+                        setTimeout(function(){
+                            levelUp();
+                        },5000);    
+                    }
+                }
+            }
+            //game over function
+            function gameOver(){
+                gameLose = true;
+                gameStart = false;
+                canvas.style.display = "none";
+                document.getElementById("hud").style.display = "none";
+                document.getElementById("gameOver").style.display = "block";
+            }
+            //setup
+            canvas.width = 600;
+            canvas.height = 600;
+            //builders
+            const physics = new Physics();
+            const player = new Player();
+            enemyArr.push(new Cultist);
+            //pre-game loading
+                //generate the terrain
+            terraAreaGen(player.worldX,player.worldY);
+            terraGen();
+                //draw the sprites
+            for(let i=0;i<enemyArr.length;i++){
+                enemyArr[i].draw();
+            }
+            player.draw();
+            //sprite anim loop
+            setInterval(function(){
+                for(let i=0;i<enemyArr.length;i++){
+                    enemyArr[i].updateSprite();
+                }
+                player.updateSprite();
+            },200);
+            //hp and mp generation
+            setInterval(function(){
+                if(player.mp < player.mpMax && gameStart){
+                    player.mp ++;
+                }
+            },500);
+            setInterval(function(){
+                if(player.hp < player.hpMax && gameStart){
+                    player.hp ++;
+                }
+            },1150);
+            //loop
+            function loop(){
+                //clear the canvas
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                //gameloop
+                if(gameStart == true){
+                    //level update
+                    document.getElementById("level").innerHTML = level;
+                    //draw the terrain
+                    terraGen();
+                    //controls
+                    controls();
+                    //apply physics
+                        //gravity
+                    for(let i=0;i<enemyArr.length;i++){
+                        physics.gravity(enemyArr[i]);
+                    }
+                    physics.gravity(player);
+                        //friction
+                    for(let i=0;i<enemyArr.length;i++){
+                        physics.friction(enemyArr[i]);
+                    }
+                    physics.friction(player);
+                    //behaviours
+                    for(let i=0;i<enemyArr.length;i++){
+                        enemyArr[i].behaviour();
+                    }
+                    //draw projectiles
+                    for(let i=0;i<projectileArr.length;i++){
+                        projectileArr[i].update();
+                    }
+                    //draw the sprites
+                    for(let i=0;i<enemyArr.length;i++){
+                        enemyArr[i].update();
+                    }
+                    //hp and mp management
+                    enemyDamage();
+                    playerDamage();
+                    hpBar.max = player.hpMax;
+                    hpBar.value = player.hp;
+                    mpBar.max = player.mpMax;
+                    mpBar.value = player.mp;
+                    //other
+                    player.update();
+                    player.updateOldPos();
+                }else if(!gameStart && !gameLose ){
+                    
+                }else if(gameLose){
+
+                }
+                //rerun the loop
+                requestAnimationFrame(loop);
+            }
+            loop();
+        </script>
+    </body>
+</html>
